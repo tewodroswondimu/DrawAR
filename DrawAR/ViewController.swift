@@ -12,6 +12,7 @@ import ARKit
 // By inheriting from ARSCNViewDelegate, it allows to get the renderer delete
 class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet weak var sceneView: ARSCNView!
+    @IBOutlet weak var draw: UIButton!
     
     let configuration = ARWorldTrackingConfiguration()
     
@@ -36,7 +37,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     // Will be called everytime the scene is rendering
     func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
-        print("Rendering")
         
         // the current location and orientation of the camera view
         guard let pointOfView = sceneView.pointOfView else {return}
@@ -63,7 +63,40 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // to get the current position we combine the orientation and location
         let currentPositionOfCamera = orientation + location
-        print(orientation.x, orientation.y, orientation.z)
+        
+        // Make everything run in the main
+        DispatchQueue.main.async {
+            // figure out when the button is being pressed
+            if (self.draw.isHighlighted) {
+                // Create a sphere whereever the current position of the camera is
+                let sphereNode = SCNNode(geometry: SCNSphere(radius: 0.02))
+                sphereNode.position = currentPositionOfCamera
+                
+                // Add to the root node and give it a red color
+                self.sceneView.scene.rootNode.addChildNode(sphereNode)
+                sphereNode.geometry?.firstMaterial?.diffuse.contents = UIColor.red
+            } else {
+                let pointer = SCNNode(geometry: SCNBox(width: 0.01, height: 0.01, length: 0.01, chamferRadius: 0.01/2))
+                pointer.position = currentPositionOfCamera
+                
+                // delete previously existing pointer sphere
+                self.sceneView.scene.rootNode.enumerateChildNodes({ (node, _) in
+                    // only remove boxes not spheres.
+                    if node.geometry is SCNBox {
+                        node.removeFromParentNode()
+                    }
+                    
+                    // optionally we can give the pointer a name like so
+                    // pointer.name = "pointer"
+                    // then check if the node's name is equal to pointer like so
+                    // if node.name == "pointer"
+                })
+                
+                // add to the root node and give it a blue color
+                self.sceneView.scene.rootNode.addChildNode(pointer)
+                pointer.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
+            }
+        }
     }
 }
 
